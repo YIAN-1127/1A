@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>材料承认助手</title>
+<meta name="description" content="材料承认流程的状态登记工具：哪个批次走到哪、下一步做什么、今天该去哪个场地。">
+<meta name="theme-color" content="#2563a8">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --ink:#1b1f24; --muted:#6b7280;
+  --line:#e2e6ea; --brand:#2563a8; --brand-soft:#e8f0f9;
+  --ok:#1f8a56; --ok-soft:#e6f4ec; --warn:#a8681a; --warn-soft:#fdf3e3;
+  --bad:#c0392b; --bad-soft:#fbeae8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font:15px/1.55 "Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
+  background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+#app{max-width:760px;margin:0 auto;padding:0 14px 60px}
+
+header.top{
+  position:sticky; top:0; z-index:10; background:var(--bg);
+  display:flex; align-items:center; gap:10px; padding:14px 0 10px;
+}
+header.top h1{font-size:17px;margin:0;font-weight:600;flex:1}
+.back{
+  border:1px solid var(--line); background:var(--card); color:var(--ink);
+  border-radius:8px; padding:6px 12px; font-size:14px; cursor:pointer;
+}
+.back:hover{background:#eef1f4}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{
+  border:1px solid var(--line); background:var(--card); color:var(--muted);
+  border-radius:999px; padding:7px 16px; font-size:14px; cursor:pointer;
+}
+.tab.on{background:var(--brand); border-color:var(--brand); color:#fff}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 8px;text-align:center}
+.stat b{display:block;font-size:22px;font-weight:600;line-height:1.2}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.alert b{color:var(--bad)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.code{font-weight:600;font-size:16px}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.next{color:var(--brand);font-size:13px;margin-top:6px}
+.tag{font-size:12px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.n{background:#eef1f4;color:var(--muted)}
+.lnk{color:var(--brand);cursor:pointer}
+.lnk:hover{text-decoration:underline}
+[data-act]{cursor:pointer}
+[data-act]:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
+.rowitem:focus-visible{outline-offset:-2px}
+
+.bar{height:6px;background:#eef1f4;border-radius:999px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:999px}
+.bar.done i{background:var(--ok)}
+
+.item{
+  display:flex;align-items:center;gap:10px;padding:12px 10px;
+  border-bottom:1px solid var(--line);cursor:pointer;
+}
+.item:last-child{border-bottom:0}
+.item:hover{background:#f8fafc}
+.dot{width:22px;text-align:center;font-size:15px;flex:none}
+.item.todo .nm{color:var(--ink)}
+.item.done .nm{color:var(--muted);text-decoration:line-through}
+.item.fail .nm{color:var(--bad)}
+.item .nm{flex:1}
+.item .meta{font-size:12px;color:var(--muted)}
+
+.btn{
+  display:block;width:100%;border:0;border-radius:10px;padding:16px;
+  font-size:16px;font-family:inherit;cursor:pointer;margin-bottom:10px;font-weight:500;
+}
+.btn.start{background:var(--brand-soft);color:var(--brand)}
+.btn.finish{background:var(--ok);color:#fff}
+.btn.warn{background:var(--warn-soft);color:var(--warn)}
+.btn.fail{background:var(--bad-soft);color:var(--bad)}
+.btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--muted)}
+.btn.primary{background:var(--brand);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+
+input,select,textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
+  font:inherit;background:var(--card);color:var(--ink);margin-bottom:10px;
+}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+
+.note{font-size:13px;color:var(--muted);line-height:1.6}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{background:#f8fafc;font-weight:600;color:var(--muted);position:sticky;top:52px}
+td.c{text-align:center}
+.mark{background:var(--brand-soft);color:var(--brand);font-weight:600;border-radius:5px}
+.scroll{overflow-x:auto}
+footer{margin-top:24px;text-align:center}
+footer button{
+  background:none;border:0;color:var(--muted);font-size:12px;cursor:pointer;
+  text-decoration:underline;font-family:inherit;
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ------------------------------------------------------------------ 数据 */
+const ITEMS = [
+  {id:'D', name:'尺寸测量①长宽高',   group:'尺寸',       sites:['2号楼3楼','1号楼5楼']},
+  {id:'E', name:'尺寸测量②内径投影', group:'尺寸',       sites:['1号楼5楼','2号楼4楼']},
+  {id:'F', name:'米电阻测试',         group:'电学性能',   sites:['1号楼4楼']},
+  {id:'G', name:'IT熔断测试',         group:'电学性能',   sites:['办公楼2楼']},
+  {id:'H', name:'硬度测试',           group:'力学性能',   sites:['2号楼2楼']},
+  {id:'I', name:'拉力测试',           group:'力学性能',   sites:['2号楼3楼']},
+  {id:'J', name:'镀层-退镀法',        group:'镀层检测',   sites:['2号楼3楼']},
+  {id:'K', name:'镀层-镀层仪',        group:'镀层检测',   sites:['2号楼3楼','办公楼2楼']},
+  {id:'L', name:'可焊性',             group:'可靠性验证', sites:['2号楼3楼']},
+  {id:'M', name:'助焊剂',             group:'可靠性验证', sites:['2号楼3楼']},
+  {id:'N', name:'分断测试',           group:'可靠性验证', sites:['2号楼1楼','办公楼1楼']},
+  {id:'O', name:'透液性',             group:'可靠性验证', sites:['2号楼3楼']},
+  {id:'P', name:'装配实验',           group:'可靠性验证', sites:['样品室']},
+  {id:'Q', name:'密度测试',           group:'其他',       sites:['2号楼3楼']},
+  {id:'R', name:'x射线',              group:'其他',       sites:['1号楼1楼']},
+  {id:'S', name:'黏度',               group:'其他',       sites:['1号楼5楼']}
+];
+
+const CATS = [
+  {id:1, name:'可熔体（丝材）', variant:'', items:['D','F','G']},
+  {id:2, name:'可熔体（银铜带）', variant:'纯银带', items:['D','F','H']},
+  {id:3, name:'可熔体（银铜带）', variant:'铜带', items:['D','F','H']},
+  {id:4, name:'可熔体（银铜带）', variant:'镀银铜带', items:['D','H','K']},
+  {id:5, name:'可熔体（银铜带）', variant:'银铜复合带', items:['D','H','I']},
+  {id:6, name:'陶瓷管', variant:'', items:['D','E','I','N','O','P','Q','R']},
+  {id:7, name:'引线铜帽（电镀线）', variant:'', items:['D','E','I','J','K','L','P']},
+  {id:8, name:'引线铜帽（电镀线）', variant:'铜帽', items:['D','E','J','K','P']},
+  {id:9, name:'包装材料', variant:'', items:['D','P']},
+  {id:10, name:'焊锡', variant:'', items:['D','L','M']},
+  {id:11, name:'塑料件', variant:'', items:['D','I','L','P']},
+  {id:12, name:'陶瓷基板', variant:'', items:['D','E','O','R']},
+  {id:13, name:'陶瓷基板', variant:'镀金镀镍基板', items:['D','K']},
+  {id:14, name:'浆料', variant:'', items:['S']}
+];
+
+const STATUS_TEXT = {todo:'未开始', doing:'进行中', pending:'待判定',
+                     done:'合格', fail:'不合格', skip:'免做'};
+const STATUS_DOT  = {todo:'⬜', doing:'🟡', pending:'🟨', done:'✅', fail:'🔴', skip:'➖'};
+const STALE_DAYS = 2;
+
+const KEY = 'mat-recog-proto-v1';
+
+function today(){ return new Date().toISOString().slice(0,10); }
+function daysAgo(d){ return (Date.now() - new Date(d).getTime()) / 86400000; }
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g,
+    m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function seed(){
+  return {seq:6, view:'board', batches:[
+    // 漏项 + 停滞：尺寸和 IT熔断 做完了，中间的米电阻还空着
+    mkBatch({id:1, code:'A-1023', catId:1, spec:'φ0.900mm', supplier:'S14006',
+             buyer:'张敏', recvDate:'2026-01-16', qty:'0.26Kg',
+             plan:['done','todo','done'], lastUpdate:'2026-09-28'}),
+    // 测试做完了但没下结论
+    mkBatch({id:2, code:'A-1031', catId:10, spec:'Φ1.1mm', supplier:'S13009',
+             buyer:'李伟', recvDate:'2026-07-21', qty:'0.5Kg',
+             plan:['done','pending','todo'], lastUpdate:'2026-10-05'}),
+    // 全部测完，等判定
+    mkBatch({id:3, code:'A-1044', catId:6, spec:'5.75*23.6mm', supplier:'AT31',
+             buyer:'张敏', recvDate:'2026-09-30', qty:'1K EA',
+             plan:['done','done','done','done','done','done','done','done'],
+             lastUpdate:'2026-10-04'})
+    ,
+    // 一批刚开的铜帽，测试项散在好几个地方
+    mkBatch({id:4, code:'A-1052', catId:7, spec:'3.9*0.8*30mm', supplier:'S16021',
+             buyer:'王强', recvDate:'2026-10-02', qty:'（6）箱',
+             plan:['doing','todo','todo','todo','todo','todo','todo'],
+             lastUpdate:'2026-10-05'}),
+    // 陶瓷基板，带 x射线
+    mkBatch({id:5, code:'A-1067', catId:12, spec:'60*70*0.50mm', supplier:'S25002',
+             buyer:'李伟', recvDate:'2026-10-05', qty:'10 片',
+             plan:['done','todo','todo','todo'], lastUpdate:'2026-09-29'})
+  ]};
+}
+function mkBatch(o){
+  const c = CATS.find(x => x.id === o.catId);
+  const items = c.items.map((iid, i) => {
+    const st = o.plan[i] || 'todo';
+    return {id:iid, status:st, value:'', note:'',
+            startDate:['doing','done','fail'].includes(st) ? o.recvDate : null,
+            doneDate:(st === 'done' || st === 'fail') ? o.recvDate : null};
+  });
+  return {id:o.id, code:o.code, catId:o.catId, spec:o.spec, supplier:o.supplier,
+          buyer:o.buyer || '', recvDate:o.recvDate, qty:o.qty, items,
+          round:1, history:[], conclusion:'', archiveAt:'', lastUpdate:o.lastUpdate};
+}
+
+let S = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw) return normalize(JSON.parse(raw));
+  }catch(e){}
+  return seed();
+}
+// 老版本存下来的数据没有 round / history / buyer 这些字段，读进来时补齐，别让旧数据把页面搞崩
+function normalize(p){
+  if(!p || typeof p !== 'object' || !Array.isArray(p.batches)) return seed();
+  p.view = 'board';
+  p.ioResult = null;
+  p.batches = p.batches.filter(b => b && b.code && Array.isArray(b.items));
+  const maxId = p.batches.reduce((m, b) => Math.max(m, Number(b.id) || 0), 0);
+  p.seq = Math.max(Number(p.seq) || 0, maxId + 1);
+  p.batches.forEach(b => {
+    b.round      = Math.max(1, Number(b.round) || 1);
+    b.history    = Array.isArray(b.history) ? b.history : [];
+    b.buyer      = b.buyer || '';
+    b.conclusion = (b.conclusion === '承认' || b.conclusion === '不承认') ? b.conclusion : '';
+    b.archiveAt  = b.archiveAt || '';
+    b.lastUpdate = b.lastUpdate || b.recvDate || today();
+    b.items = b.items.map(i => ({
+      id: i.id,
+      status: STATUS_TEXT[i.status] ? i.status : 'todo',
+      value: i.value || '',
+      note: i.note || '',
+      startDate: i.startDate || null,
+      doneDate: i.doneDate || null
+    }));
+  });
+  return p;
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ------------------------------------------------------------- 计算规则 */
+function cat(b){ return CATS.find(c => c.id === b.catId); }
+function catName(b){ const c = cat(b); return c.name + (c.variant ? ' · ' + c.variant : ''); }
+function itemName(id){ const t = ITEMS.find(x => x.id === id); return t ? t.name : id; }
+function itemGroup(id){ const t = ITEMS.find(x => x.id === id); return t ? t.group : ''; }
+function itemSites(id){ const t = ITEMS.find(x => x.id === id); return (t && t.sites) ? t.sites : []; }
+function itemSiteText(id){ const s = itemSites(id); return s.length ? s[0] : '未填场地'; }
+
+const SETTLED = ['done','fail','skip'];          // 已有结论
+const WORKED  = ['done','fail','pending','skip']; // 活已干完（含待判）
+
+function judgedCount(b){ return b.items.filter(i => SETTLED.includes(i.status)).length; }
+function workedCount(b){ return b.items.filter(i => WORKED.includes(i.status)).length; }
+function pendingCount(b){ return b.items.filter(i => i.status === 'pending').length; }
+function needsJudge(b){ return pendingCount(b) > 0; }
+function workDone(b){ return b.items.every(i => WORKED.includes(i.status)); }
+function allDone(b){ return b.items.every(i => SETTLED.includes(i.status)); }
+function hasFail(b){ return b.items.some(i => i.status === 'fail'); }
+function nextItem(b){ return b.items.find(i => i.status==='todo' || i.status==='doing'); }
+
+function isStale(b){
+  return !allDone(b) && !b.conclusion && daysAgo(b.lastUpdate) > STALE_DAYS;
+}
+// 漏项：前面的没做完，后面的却已经做完
+function hasGap(b){
+  let seenOpen = false;
+  for(const it of b.items){
+    if(it.status==='todo' || it.status==='doing') seenOpen = true;
+    else if(seenOpen && WORKED.includes(it.status)) return true;
+  }
+  return false;
+}
+function exceptionTag(b){
+  if(hasGap(b)) return {cls:'bad', text:'⚠ 漏项'};
+  if(isStale(b)) return {cls:'warn', text:'停滞 '+Math.floor(daysAgo(b.lastUpdate))+'天'};
+  return null;
+}
+
+function tagsHTML(b){
+  const out = [];
+  const exc = exceptionTag(b);
+  if(exc) out.push(`<span class="tag ${exc.cls}">${exc.text}</span>`);
+  const np = pendingCount(b);
+  if(np && !b.conclusion) out.push(`<span class="tag warn">${np} 项待判</span>`);
+  if(b.conclusion) out.push(`<span class="tag ${b.conclusion==='承认'?'ok':'bad'}">${b.conclusion}</span>`);
+  else if(allDone(b)) out.push(`<span class="tag warn">待承认</span>`);
+  return out.join(' ');
+}
+
+function touch(b){ b.lastUpdate = today(); }
+
+/* ------------------------------------------------------------------ 渲染 */
+const app = document.getElementById('app');
+
+function render(){
+  save();
+  const v = S.view;
+  if(v === 'board')       return viewBoard();
+  if(v === 'detail')      return viewDetail(S.cur);
+  if(v === 'record')      return viewRecord(S.cur, S.curItem);
+  if(v === 'new')         return viewForm('new');
+  if(v === 'edit')        return viewForm('edit');
+  if(v === 'site')        return viewSite();
+  if(v === 'config')      return viewConfig();
+  if(v === 'io')          return viewIO();
+}
+
+function header(title, backTo){
+  return `<header class="top">
+    ${backTo ? `<button class="back" data-act="go" data-to="${backTo}">← 返回</button>` : ''}
+    <h1>${title}</h1>
+  </header>`;
+}
+function tabs(active){
+  const t = [['board','今日看板'],['site','场地视图'],['config','物料配置'],
+             ['new','＋ 新建批次'],['io','导入导出']];
+  return `<div class="tabs">${t.map(([k,label]) =>
+    `<button class="tab ${k===active?'on':''}" data-act="go" data-to="${k}">${label}</button>`).join('')}</div>`;
+}
+
+function viewBoard(){
+  const bs = S.batches;
+  const exc   = bs.filter(b => !b.conclusion && exceptionTag(b));
+  const pend  = bs.filter(b => !b.conclusion && needsJudge(b));
+  const doing = bs.filter(b => !b.conclusion && !workDone(b));
+  const ready = bs.filter(b => !b.conclusion && workDone(b) && !needsJudge(b));
+  const done  = bs.filter(b => b.conclusion);
+
+  const order = [...exc, ...pend, ...doing, ...ready, ...done];
+  const seen = new Set();
+  const list = order.filter(b => !seen.has(b.id) && seen.add(b.id));
+
+  app.innerHTML = `
+    ${header('材料承认助手')}
+    ${tabs('board')}
+    <div class="stats">
+      <div class="stat"><b>${doing.length}</b><span>进行中</span></div>
+      <div class="stat"><b>${pend.length}</b><span>待判定</span></div>
+      <div class="stat"><b>${ready.length}</b><span>待承认</span></div>
+      <div class="stat alert"><b>${exc.length}</b><span>异常</span></div>
+      <div class="stat"><b>${done.length}</b><span>已承认</span></div>
+    </div>
+    ${list.length ? list.map(cardHTML).join('') : '<div class="empty">还没有批次<br>点上面的「＋ 新建批次」试一下</div>'}
+    <footer>
+      <div class="note" style="margin-bottom:8px">数据只存在这台设备上，不会上传。建议每周到「导入导出」导出一次备份。</div>
+      <button data-act="reset">重置为示例数据</button>
+    </footer>
+  `;
+}
+
+function cardHTML(b){
+  const n = judgedCount(b), w = workedCount(b), total = b.items.length;
+  const nxt = nextItem(b);
+  const pct = total ? Math.round(w / total * 100) : 0;
+  return `<div class="card" data-act="open" data-id="${b.id}" role="button" tabindex="0" style="cursor:pointer">
+    <div class="row">
+      <div class="grow">
+        <div class="row">
+          <span class="code">${esc(b.code)}</span>
+          <span class="tag n">${catName(b)}</span>
+        </div>
+        <div class="sub">${esc(b.spec)}${b.spec?' · ':''}${n}/${total} 项已判定</div>
+      </div>
+      <div style="text-align:right">${tagsHTML(b)}</div>
+    </div>
+    <div class="bar ${allDone(b)?'done':''}"><i style="width:${pct}%"></i></div>
+    ${nxt ? `<div class="next">下一步：${itemName(nxt.id)}</div>`
+          : b.conclusion ? `<div class="next">已归档${b.archiveAt ? ' · ' + b.archiveAt : ''}</div>`
+          : needsJudge(b) ? `<div class="next">还有 ${pendingCount(b)} 项没下结论</div>`
+          : `<div class="next">全部测试已完成，等你判定</div>`}
+  </div>`;
+}
+
+function viewDetail(id){
+  const b = S.batches.find(x => x.id === id);
+  if(!b) { S.view='board'; return render(); }
+  const n = judgedCount(b), w = workedCount(b), total = b.items.length;
+  const nxt = nextItem(b);
+
+  app.innerHTML = `
+    ${header('批次详情', 'board')}
+    <div class="card">
+      <div class="row">
+        <div class="code grow" style="font-size:20px">${esc(b.code)}</div>
+        <button class="back" data-act="edit" data-id="${b.id}">编辑</button>
+      </div>
+      <div class="sub">${catName(b)} ｜ ${esc(b.spec)}${b.round > 1 ? ` ｜ 第 ${b.round} 次送样` : ''}</div>
+      <div class="sub">供应商 ${esc(b.supplier)||'—'} ｜ 采购 ${esc(b.buyer)||'—'} ｜ 送样 ${esc(b.recvDate)||'—'}</div>
+      ${b.qty ? `<div class="sub">送样数量 ${esc(b.qty)}</div>` : ''}
+      <div class="bar ${allDone(b)?'done':''}"><i style="width:${Math.round(w/total*100)}%"></i></div>
+      <div class="sub">已判定 ${n}/${total}${needsJudge(b) ? `　<span class="tag warn">${pendingCount(b)} 项待判</span>` : ''}</div>
+    </div>
+
+    <div class="card" style="padding:4px 4px">
+      ${b.items.map(it => `
+        <div class="item ${it.status}" data-act="open-item" data-id="${b.id}" data-item="${it.id}" role="button" tabindex="0">
+          <span class="dot">${STATUS_DOT[it.status]}</span>
+          <span class="nm">${itemName(it.id)}${nxt && nxt.id===it.id ? '　<b>← 下一步</b>' : ''}</span>
+          <span class="meta">${it.status==='pending' ? '待判'
+            : SETTLED.includes(it.status) ? (it.doneDate||'')
+            : esc(itemSiteText(it.id))}</span>
+        </div>`).join('')}
+    </div>
+
+    ${allDone(b) && !b.conclusion ? `
+    <div class="card">
+      <div class="note" style="margin-bottom:10px">
+        ${hasFail(b) ? '有测试项判定为不合格。' : '全部测试项已完成。'}
+        出完承认报告后，在这里给结论。
+      </div>
+      <button class="btn finish" data-act="conclude" data-id="${b.id}" data-val="承认">承认</button>
+      <button class="btn fail" data-act="conclude" data-id="${b.id}" data-val="不承认">不承认</button>
+    </div>` : ''}
+
+    ${!allDone(b) && needsJudge(b) ? `
+    <div class="note">有 ${pendingCount(b)} 项测试做完了但还没下结论，全部判定完才会出现承认按钮。</div>` : ''}
+
+    ${b.conclusion ? `
+    <div class="card">
+      <div class="row"><span class="grow">承认结论</span>
+        <span class="tag ${b.conclusion==='承认'?'ok':'bad'}">${b.conclusion}</span></div>
+      <div class="sub">${b.archiveAt ? '已归档 · ' + b.archiveAt : '待归档'}</div>
+    </div>` : ''}
+
+    ${b.conclusion === '不承认' ? `
+    <div class="card">
+      <div class="note" style="margin-bottom:10px">
+        这一批判定不承认，等供方重新送样。
+      </div>
+      <button class="btn warn" data-act="resubmit">收到新样品 · 开始第 ${b.round + 1} 次送样</button>
+      <div class="note">当前这一轮的测试结果会存进历史，测试项全部重置为未开始。</div>
+    </div>` : ''}
+
+    ${(b.history && b.history.length) ? `
+    <div class="card">
+      <div class="sub" style="margin:0 0 4px">送样历史</div>
+      ${b.history.map(h => `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">
+        <span class="grow">第 ${h.round} 次送样</span>
+        <span class="sub" style="margin:0">${esc(h.date)}</span>
+        <span class="tag ${h.conclusion === '承认' ? 'ok' : h.conclusion ? 'bad' : 'n'}">${h.conclusion || '未判定'}</span>
+      </div>`).join('')}
+    </div>` : ''}
+  `;
+}
+
+function viewRecord(bid, itemId){
+  const b = S.batches.find(x => x.id === bid);
+  const it = b.items.find(i => i.id === itemId);
+  const name = itemName(itemId);
+
+  app.innerHTML = `
+    ${header(name, 'detail')}
+    <div class="card">
+      <div class="sub">批次 ${esc(b.code)} ｜ ${catName(b)}</div>
+      <div class="sub">所属类别：${itemGroup(itemId)} ｜ 场地：${itemSites(itemId).map(esc).join(' / ') || '未填'}</div>
+      <div class="sub">当前状态：<b>${STATUS_TEXT[it.status]}</b>
+        ${it.doneDate ? ' · ' + it.doneDate : ''}</div>
+    </div>
+
+    <button class="btn start"  data-act="set" data-val="doing"  ${it.status==='doing'?'disabled':''}>开始</button>
+    <button class="btn finish" data-act="set" data-val="done">合格</button>
+    <button class="btn warn"   data-act="set" data-val="pending">待判定</button>
+    <button class="btn fail"   data-act="set" data-val="fail">不合格</button>
+    <button class="btn ghost"  data-act="set" data-val="skip">本批免做</button>
+
+    <div class="card">
+      <label>实测值（可留空）</label>
+      <input id="val" value="${esc(it.value)}" placeholder="例如 0.0172 mΩ·mm">
+      <label>备注（可留空）</label>
+      <input id="note" value="${esc(it.note)}" placeholder="">
+      <button class="btn ghost" style="margin:0" data-act="saveval">只保存数据，不改状态</button>
+    </div>
+    <div class="note">
+      合格 / 待判定 / 不合格 三个都表示“这项已经做完了”，区别只是结论有没有下。
+      做完了但还没看数据，就先点「待判定」。
+      点完自动记日期、刷新最近操作时间，回到上一页。
+    </div>
+  `;
+}
+
+function viewSite(){
+  const bySite = {};   // 场地 -> { 测试项 -> [{code,id}] }
+  S.batches.filter(b => !b.conclusion).forEach(b => {
+    b.items.forEach(i => {
+      if(i.status !== 'todo' && i.status !== 'doing') return;
+      const sites = itemSites(i.id);
+      (sites.length ? sites : ['未填场地']).forEach(site => {
+        bySite[site] = bySite[site] || {};
+        (bySite[site][i.id] = bySite[site][i.id] || []).push({code:b.code, id:b.id});
+      });
+    });
+  });
+
+  const score = st => Object.values(bySite[st]).reduce((a, l) => a + l.length, 0);
+  const sites = Object.keys(bySite).sort((a, c) => score(c) - score(a));
+
+  app.innerHTML = `
+    ${header('场地视图')}
+    ${tabs('site')}
+    ${sites.length ? `
+      <div class="note" style="margin:0 2px 12px">
+        16 个测试项分布在 ${sites.length} 个地方。按“这一趟有多少活”排序，最上面的先去最划算。
+        同一个地方要做的活会一次列全，不用来回跑。
+      </div>
+      ${sites.map(st => {
+        const items = bySite[st];
+        const codes = new Set();
+        Object.values(items).forEach(l => l.forEach(o => codes.add(o.id)));
+        const order = Object.keys(items).sort((a, c) => items[c].length - items[a].length);
+        return `<div class="card">
+          <div class="row">
+            <span class="grow code" style="font-size:16px">${esc(st)}</span>
+            <span class="tag n">${order.length} 项 · ${codes.size} 批</span>
+          </div>
+          <div style="margin-top:6px">
+            ${order.map(iid => {
+              const others = itemSites(iid).filter(s => s !== st);
+              return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">
+                <span class="grow">${itemName(iid)}
+                  ${others.length ? `<span style="color:var(--muted);font-size:12px">（也可在 ${others.map(esc).join('、')}）</span>` : ''}
+                </span>
+                <span class="sub" style="margin:0">${items[iid].map(o =>
+                  `<span class="lnk" data-act="open" data-id="${o.id}" role="button" tabindex="0">${esc(o.code)}</span>`).join('、')}</span>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}`
+    : '<div class="empty">目前没有待做项</div>'}
+    <div class="note">同一项能在两个地方做时，两个场地都会列出来，你按顺路选一个就行。</div>
+  `;
+}
+
+function viewForm(mode){
+  const editing = mode === 'edit';
+  const b = editing ? S.batches.find(x => x.id === S.cur) : null;
+  if(editing && !b){ S.view = 'board'; return render(); }
+
+  const buyers = [...new Set(S.batches.map(x => x.buyer).filter(Boolean))];
+
+  app.innerHTML = `
+    ${header(editing ? '编辑批次' : '新建批次', editing ? 'detail' : null)}
+    ${editing ? '' : tabs('new')}
+    <div class="card">
+      <label>物料品类</label>
+      <select id="cat" ${editing ? 'disabled' : ''}>
+        ${CATS.map(c => `<option value="${c.id}"${editing && c.id === b.catId ? ' selected' : ''}>${c.name}${c.variant ? ' · ' + c.variant : ''}</option>`).join('')}
+      </select>
+      <div class="note" id="preview" style="margin-bottom:12px"></div>
+      <label>批次编号</label>
+      <input id="code" value="${editing ? esc(b.code) : ''}" placeholder="例如 A-1052">
+      <label>物料规格</label>
+      <input id="spec" value="${editing ? esc(b.spec) : ''}" placeholder="例如 φ0.900mm">
+      <label>供应商</label>
+      <input id="supplier" value="${editing ? esc(b.supplier) : ''}" placeholder="例如 S14006">
+      <label>采购（谁给的）</label>
+      <input id="buyer" list="buyers" value="${editing ? esc(b.buyer) : ''}" placeholder="例如 张敏">
+      <datalist id="buyers">
+        ${buyers.map(n => `<option value="${esc(n)}"></option>`).join('')}
+      </datalist>
+      <label>送样日期</label>
+      <input id="recvDate" type="date" value="${editing ? (b.recvDate || today()) : today()}">
+      <label>送样数量</label>
+      <input id="qty" value="${editing ? esc(b.qty) : ''}" placeholder="例如 0.26Kg">
+      <button class="btn primary" data-act="${editing ? 'save' : 'create'}">${editing ? '保存' : '创建批次'}</button>
+    </div>
+    <div class="note">${editing
+      ? '品类改不了——一改就会换掉测试项清单，已经记录的进度会丢。要换品类请新建一个批次。'
+      : '测试项不用你挑——选了品类，必做项自动带出来。'}</div>
+  `;
+
+  const sel = document.getElementById('cat');
+  const upd = () => {
+    const c = CATS.find(x => x.id === Number(sel.value)) || CATS[0];
+    document.getElementById('preview').innerHTML =
+      `将自动生成 <b>${c.items.length}</b> 个测试项：` + c.items.map(itemName).join('、');
+  };
+  sel.addEventListener('change', upd);
+  upd();
+}
+
+/* --------------------------------------------------------------- 导入导出 */
+const IO_HEAD = ['批次编号','物料品类','变体','物料规格','供应商','采购',
+                 '送样日期','送样数量','已完成项数','承认结论'];
+
+function csvCell(v){
+  const s = String(v == null ? '' : v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function toCSV(rows){ return rows.map(r => r.map(csvCell).join(',')).join('\r\n'); }
+function dlHref(text){
+  return 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(text);
+}
+function templateCSV(){
+  return toCSV([IO_HEAD,
+    ['A-1001','可熔体（丝材）','','φ0.900mm','S14006','张敏','2026-01-16','0.26Kg',3,'承认'],
+    ['A-1002','焊锡','','Φ1.1mm','S13009','李伟','2026-07-21','0.5Kg',2,''],
+    ['A-1003','可熔体（银铜带）','纯银带','0.070*32mm','S14063','','2025-09-18','100g',1,'']]);
+}
+function exportCSV(){
+  const out = [IO_HEAD.concat(['送样次数','测试项总数','承认日期'])];
+  S.batches.forEach(b => {
+    const c = cat(b);
+    out.push([b.code, c.name, c.variant || '', b.spec, b.supplier, b.buyer,
+              b.recvDate, b.qty, judgedCount(b), b.conclusion,
+              b.round, b.items.length, b.archiveAt]);
+  });
+  return toCSV(out);
+}
+
+function parseCSV(text){
+  text = String(text).replace(/^\uFEFF/, '');
+  const rows = []; let row = [], f = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(q){
+      if(ch === '"'){ if(text[i+1] === '"'){ f += '"'; i++; } else q = false; }
+      else f += ch;
+    }
+    else if(ch === '"') q = true;
+    else if(ch === ','){ row.push(f); f = ''; }
+    else if(ch === '\n'){ row.push(f); rows.push(row); row = []; f = ''; }
+    else if(ch !== '\r') f += ch;
+  }
+  if(f !== '' || row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(v => String(v).trim() !== ''));
+}
+
+function normDate(s){
+  const m = String(s || '').trim().match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/);
+  return m ? `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`
+           : String(s || '').trim();
+}
+
+function findCat(name, variant){
+  let n = String(name || '').trim(), v = String(variant || '').trim();
+  if(n.includes('·')){
+    const p = n.split('·'); n = p[0].trim();
+    if(!v) v = (p[1] || '').trim();
+  }
+  const exact = CATS.find(c => c.name === n && (c.variant || '') === v);
+  if(exact) return {cat:exact};
+  const same = CATS.filter(c => c.name === n);
+  if(same.length === 1) return {cat:same[0]};
+  if(same.length > 1) return {err:`「${n}」有 ${same.length} 个变体，请在「变体」列写清楚`};
+  return {err:`认不出品类「${n}」`};
+}
+
+function doImport(text){
+  const rows = parseCSV(text);
+  if(rows.length < 2) return {added:0, problems:['文件里没有数据行']};
+  const head = rows[0].map(h => String(h).trim());
+  const col = (...names) => {
+    for(const nm of names){ const i = head.findIndex(h => h.includes(nm)); if(i >= 0) return i; }
+    return -1;
+  };
+  const C = {
+    code: col('批次编号'), name: col('物料品类'), variant: col('变体'),
+    spec: col('物料规格','规格'), supplier: col('供应商'), buyer: col('采购'),
+    recv: col('送样日期'), qty: col('送样数量'), doneN: col('已完成项数'),
+    conc: col('承认结论')
+  };
+  if(C.code < 0 || C.name < 0) return {added:0, problems:['必须有「批次编号」和「物料品类」两列']};
+
+  const existing = new Set(S.batches.map(b => b.code));
+  let added = 0; const problems = [];
+  for(let r = 1; r < rows.length; r++){
+    const g = k => C[k] >= 0 ? String(rows[r][C[k]] == null ? '' : rows[r][C[k]]).trim() : '';
+    const code = g('code');
+    if(!code) continue;
+    if(existing.has(code)){ problems.push(`第 ${r+1} 行「${code}」：批次号已存在，跳过`); continue; }
+    const found = findCat(g('name'), g('variant'));
+    if(found.err){ problems.push(`第 ${r+1} 行「${code}」：${found.err}`); continue; }
+    const c = found.cat;
+    const rd = g('recv') ? normDate(g('recv')) : '';
+    const doneN = Math.max(0, Math.min(parseInt(g('doneN'), 10) || 0, c.items.length));
+    const conc = g('conc');
+    existing.add(code);
+    S.batches.push({
+      id: S.seq++, code, catId: c.id, spec: g('spec'), supplier: g('supplier'),
+      buyer: g('buyer'), recvDate: rd || today(), qty: g('qty'),
+      items: c.items.map((iid, i) => ({
+        id:iid, status: i < doneN ? 'done' : 'todo', value:'', note:'',
+        startDate: i < doneN ? (rd || null) : null,
+        doneDate:  i < doneN ? (rd || null) : null
+      })),
+      round: 1, history: [],
+      conclusion: (conc === '承认' || conc === '不承认') ? conc : '',
+      archiveAt: '', lastUpdate: today()
+    });
+    added++;
+  }
+  S.batches.sort((a, b) => String(b.recvDate).localeCompare(String(a.recvDate)));
+  return {added, problems};
+}
+
+function viewIO(){
+  const io = S.ioResult;
+  app.innerHTML = `
+    ${header('导入导出')}
+    ${tabs('io')}
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px">一次性导入历史批次</div>
+      <div class="note" style="margin-bottom:12px">
+        在 Excel 里：文件 → 另存为 → 文件类型选「CSV UTF-8」。然后从这里选那个文件。
+        必填只有两列：批次编号、物料品类。
+      </div>
+      <input type="file" id="file" accept=".csv,.txt">
+      ${io ? `<div class="note" style="margin-top:10px">
+        导入完成：新增 <b>${io.added}</b> 个批次。
+        ${io.problems.length ? `<br>跳过 ${io.problems.length} 行：<br>${io.problems.slice(0, 12).map(esc).join('<br>')}${io.problems.length > 12 ? '<br>…' : ''}` : ''}
+      </div>` : ''}
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px">先下模板</div>
+      <div class="note" style="margin-bottom:12px">
+        不知道列怎么填就下模板看看。「已完成项数」填数字，表示前几项已经做完；
+        空着就当全部没做。品类有变体的（银铜带、陶瓷基板、引线铜帽），要在「变体」列写清楚。
+      </div>
+      <a class="btn ghost" style="text-align:center;text-decoration:none" href="${dlHref(templateCSV())}" download="批次导入模板.csv">下载 CSV 模板</a>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px">导出当前数据</div>
+      <div class="note" style="margin-bottom:12px">
+        把系统里现在的 ${S.batches.length} 个批次导出成 CSV，可以备份，也能拿去写述职。
+      </div>
+      <a class="btn ghost" style="text-align:center;text-decoration:none" href="${dlHref(exportCSV())}" download="材料承认批次_导出.csv">导出 ${S.batches.length} 个批次</a>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px">清空</div>
+      <div class="note" style="margin-bottom:12px">
+        示例批次只是给你试手感的。正式开始用之前，点这里清掉，从零开始登记。
+        <b>清空前先导出一次备份。</b>
+      </div>
+      <button class="btn fail" data-act="wipe">清空全部批次</button>
+      <button class="btn ghost" data-act="reset">恢复示例批次</button>
+    </div>
+  `;
+  const fi = document.getElementById('file');
+  if(fi) fi.addEventListener('change', ev => {
+    const f = ev.target.files && ev.target.files[0];
+    if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { S.ioResult = doImport(rd.result); S.view = 'io'; render(); };
+    rd.readAsText(f, 'UTF-8');
+  });
+}
+
+function viewConfig(){
+  app.innerHTML = `
+    ${header('物料配置')}
+    ${tabs('config')}
+    <div class="scroll"><table>
+      <thead><tr><th>物料</th><th>变体</th>${ITEMS.map(i=>`<th class="c" title="${i.group}">${i.name}</th>`).join('')}</tr></thead>
+      <tbody>
+        ${CATS.map(c => `<tr>
+          <td>${c.name}</td><td>${c.variant||'—'}</td>
+          ${ITEMS.map(i => c.items.includes(i.id)
+            ? `<td class="c mark">1</td>` : `<td class="c"></td>`).join('')}
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+    <div class="note" style="margin-top:12px">
+      这张表就是小程序里的数据字典。以后要加测试项或改某个物料的必做项，在这里改一次，
+      新建的批次就按新规则走，已经建好的批次不受影响——这是当初把它设计成“表”而不是“列”的原因。
+    </div>
+  `;
+}
+
+/* ------------------------------------------------------------------ 事件 */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if(!el) return;
+  handleAction(el);
+});
+
+// 键盘也能用：Tab 到卡片 / 测试项，回车或空格等于点击
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const el = e.target.closest && e.target.closest('[data-act]');
+  if(!el || ['BUTTON','A','INPUT','SELECT'].includes(el.tagName)) return;
+  e.preventDefault();
+  handleAction(el);
+});
+
+function handleAction(el){
+  const act = el.dataset.act;
+
+  if(act === 'go'){
+    S.view = el.dataset.to;
+    if(S.view === 'board') S.cur = null;
+    return render();
+  }
+  if(act === 'open'){
+    S.cur = Number(el.dataset.id); S.view = 'detail'; return render();
+  }
+  if(act === 'open-item'){
+    S.cur = Number(el.dataset.id);
+    S.curItem = el.dataset.item;
+    S.view = 'record'; return render();
+  }
+  if(act === 'edit'){
+    S.cur = Number(el.dataset.id);
+    S.view = 'edit'; return render();
+  }
+  if(act === 'save'){
+    const b = S.batches.find(x => x.id === S.cur);
+    const g = id => document.getElementById(id).value.trim();
+    b.code     = g('code') || b.code;
+    b.spec     = g('spec');
+    b.supplier = g('supplier');
+    b.buyer    = g('buyer');
+    b.recvDate = document.getElementById('recvDate').value || b.recvDate;
+    b.qty      = g('qty');
+    touch(b);
+    S.view = 'detail'; return render();
+  }
+  if(act === 'set'){
+    const b = S.batches.find(x => x.id === S.cur);
+    const it = b.items.find(i => i.id === S.curItem);
+    const v = el.dataset.val;
+    it.status = v;
+    if(v === 'doing' && !it.startDate) it.startDate = today();
+    if(v === 'done' || v === 'fail'){
+      it.doneDate = today();
+      if(!it.startDate) it.startDate = today();
+    }
+    const vi = document.getElementById('val'); if(vi) it.value = vi.value;
+    const ni = document.getElementById('note'); if(ni) it.note = ni.value;
+    touch(b);
+    S.view = 'detail'; return render();
+  }
+  if(act === 'saveval'){
+    const b = S.batches.find(x => x.id === S.cur);
+    const it = b.items.find(i => i.id === S.curItem);
+    it.value = document.getElementById('val').value;
+    it.note  = document.getElementById('note').value;
+    touch(b); save();
+    el.textContent = '已保存 ✓';
+    setTimeout(() => { el.textContent = '只保存数据，不改状态'; }, 1200);
+    return;
+  }
+  if(act === 'conclude'){
+    const b = S.batches.find(x => x.id === S.cur);
+    b.conclusion = el.dataset.val;
+    if(b.conclusion === '承认') b.archiveAt = today();
+    touch(b); return render();
+  }
+  if(act === 'resubmit'){
+    const b = S.batches.find(x => x.id === S.cur);
+    if(!confirm(`开始第 ${b.round + 1} 次送样？当前进度会存成历史，测试项全部重置。`)) return;
+    b.history = b.history || [];
+    b.history.push({
+      round: b.round,
+      conclusion: b.conclusion,
+      date: today(),
+      items: b.items.map(i => ({id:i.id, status:i.status, value:i.value, doneDate:i.doneDate}))
+    });
+    b.round += 1;
+    b.items = b.items.map(i => ({id:i.id, status:'todo', value:'', note:'',
+                                 startDate:null, doneDate:null}));
+    b.conclusion = '';
+    b.archiveAt = '';
+    b.recvDate = today();
+    touch(b);
+    return render();
+  }
+  if(act === 'create'){
+    const catId = Number(document.getElementById('cat').value);
+    const code = document.getElementById('code').value.trim();
+    if(!code){ alert('批次编号不能空'); return; }
+    const c = CATS.find(x => x.id === catId) || CATS[0];
+    const b = {
+      id: S.seq++, code, catId,
+      spec: document.getElementById('spec').value.trim(),
+      supplier: document.getElementById('supplier').value.trim(),
+      buyer: document.getElementById('buyer').value.trim(),
+      recvDate: document.getElementById('recvDate').value || today(),
+      qty: document.getElementById('qty').value.trim(),
+      items: c.items.map(iid => ({id:iid, status:'todo', value:'', startDate:null, doneDate:null})),
+      conclusion:'', archiveAt:'', lastUpdate: today()
+    };
+    S.batches.unshift(b);
+    S.cur = b.id; S.view = 'detail';
+    return render();
+  }
+  if(act === 'reset'){
+    if(confirm('清掉所有改动，恢复成示例批次？')){
+      S = seed(); return render();
+    }
+  }
+  if(act === 'wipe'){
+    if(confirm('清空所有批次，从零开始？（建议先导出备份）')){
+      S = { seq:1, view:'io', batches:[], ioResult:null };
+      return render();
+    }
+  }
+}
+
+// 断网也能打开（实验室里网络不一定好）
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+render();
+</script>
+</body>
+</html>

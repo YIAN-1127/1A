@@ -51,8 +51,12 @@ body{
 #app{max-width:760px;margin:0 auto;padding:0 14px 60px}
 
 header.top{
-  position:sticky; top:0; z-index:10; background:transparent;
-  display:flex; align-items:center; gap:10px; padding:14px 0 10px;
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:10px;
+  margin:0 -14px 0; padding:14px 14px 10px;
+  background:rgba(247,248,250,.88);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
 }
 header.top h1{font-size:17px;margin:0;font-weight:600;flex:1}
 .back{
@@ -152,6 +156,15 @@ label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
   background:var(--bad-soft);border:1px solid #ffd9d9;color:#b03030;
   border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.6;
 }
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.chip{
+  border:1px solid var(--line);background:var(--card);color:var(--muted);
+  border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:background .12s,color .12s,border-color .12s;
+}
+.chip:hover{border-color:var(--blue)}
+.chip.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:500}
+.chip.new{background:var(--pink-soft);border-color:var(--pink);color:var(--pink)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 th{background:#fafbfc;font-weight:600;color:var(--muted);position:sticky;top:52px}
@@ -208,6 +221,10 @@ const CATS = [
 const STATUS_TEXT = {todo:'未开始', doing:'进行中', pending:'待判定',
                      done:'合格', fail:'不合格', skip:'免做'};
 const STATUS_DOT  = {todo:'⬜', doing:'🟡', pending:'🟨', done:'✅', fail:'🔴', skip:'➖'};
+
+// 「其他」：没有预设测试项，新建时手动勾
+const OTHER_CAT = {id:0, name:'其他', variant:'', items:[]};
+const CAT_LIST = CATS.concat([OTHER_CAT]);
 const STALE_DAYS = 2;
 
 const KEY = 'mat-recog-proto-v1';
@@ -220,12 +237,11 @@ function esc(s){
 }
 
 // 全新打开就是一张白纸，不带任何示例数据
-function seed(){
-  return { seq:1, view:'board', batches:[], trash:[], ioResult:null };
-}
 function emptyState(){
-  return { seq:1, view:'board', batches:[], trash:[], ioResult:null };
+  return { seq:1, view:'board', batches:[], trash:[], ioResult:null,
+           customItems:[], customSeq:1, formDraft:null };
 }
+function seed(){ return emptyState(); }
 
 let S = load();
 
@@ -253,6 +269,9 @@ function normalize(p){
   p.ioResult = null;
   p.batches = p.batches.filter(b => b && b.code && Array.isArray(b.items));
   p.trash = Array.isArray(p.trash) ? p.trash.filter(b => b && b.code && Array.isArray(b.items)) : [];
+  p.customItems = Array.isArray(p.customItems) ? p.customItems.filter(t => t && t.id && t.name) : [];
+  p.customSeq = Math.max(1, Number(p.customSeq) || 1);
+  p.formDraft = null;
   const maxId = p.batches.reduce((m, b) => Math.max(m, Number(b.id) || 0), 0);
   const maxTrash = p.trash.reduce((m, b) => Math.max(m, Number(b.id) || 0), 0);
   p.seq = Math.max(Number(p.seq) || 0, maxId + 1, maxTrash + 1);
@@ -260,6 +279,7 @@ function normalize(p){
     b.round      = Math.max(1, Number(b.round) || 1);
     b.history    = Array.isArray(b.history) ? b.history : [];
     b.buyer      = b.buyer || '';
+    b.customName = b.customName || '';
     b.conclusion = (b.conclusion === '承认' || b.conclusion === '不承认') ? b.conclusion : '';
     b.archiveAt  = b.archiveAt || '';
     b.lastUpdate = b.lastUpdate || b.recvDate || today();
@@ -277,11 +297,18 @@ function normalize(p){
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 
 /* ------------------------------------------------------------- 计算规则 */
-function cat(b){ return CATS.find(c => c.id === b.catId); }
-function catName(b){ const c = cat(b); return c.name + (c.variant ? ' · ' + c.variant : ''); }
-function itemName(id){ const t = ITEMS.find(x => x.id === id); return t ? t.name : id; }
-function itemGroup(id){ const t = ITEMS.find(x => x.id === id); return t ? t.group : ''; }
-function itemSites(id){ const t = ITEMS.find(x => x.id === id); return (t && t.sites) ? t.sites : []; }
+function cat(b){ return CATS.find(c => c.id === b.catId) || OTHER_CAT; }
+function catName(b){
+  const c = cat(b);
+  if(c.id === 0) return b.customName ? '其他 · ' + b.customName : '其他';
+  return c.name + (c.variant ? ' · ' + c.variant : '');
+}
+// 自定义实验存在 S.customItems 里，查名字、查场地都要连它一起查
+function allItems(){ return ITEMS.concat((S && S.customItems) || []); }
+function findItem(id){ return allItems().find(x => x.id === id); }
+function itemName(id){ const t = findItem(id); return t ? t.name : id; }
+function itemGroup(id){ const t = findItem(id); return t ? t.group : ''; }
+function itemSites(id){ const t = findItem(id); return (t && t.sites) ? t.sites : []; }
 function itemSiteText(id){ const s = itemSites(id); return s.length ? s[0] : '未填场地'; }
 
 const SETTLED = ['done','fail','skip'];          // 已有结论
@@ -602,12 +629,27 @@ function viewSite(){
   `;
 }
 
+// 新建表单的草稿：切换品类、加实验时会重绘，靠它把填过的内容留住
+function formDraft(){
+  if(!S.formDraft){
+    S.formDraft = { catId: CATS[0].id, picked: [], name: '',
+                    code:'', spec:'', supplier:'', buyer:'', qty:'', recvDate: today() };
+  }
+  return S.formDraft;
+}
+
 function viewForm(mode){
   const editing = mode === 'edit';
   const b = editing ? S.batches.find(x => x.id === S.cur) : null;
   if(editing && !b){ S.view = 'board'; return render(); }
 
+  const d = editing ? null : formDraft();
+  const catId = editing ? b.catId : d.catId;
+  const isOther = catId === 0;
+  const picked = editing ? [] : d.picked;
   const buyers = [...new Set(S.batches.map(x => x.buyer).filter(Boolean))];
+  const raw = k => editing ? (b[k === 'name' ? 'customName' : k] || '') : (d[k] || '');
+  const pick = k => esc(raw(k));
 
   app.innerHTML = `
     ${header(editing ? '编辑批次' : '新建批次', editing ? 'detail' : null)}
@@ -615,39 +657,100 @@ function viewForm(mode){
     <div class="card">
       <label>物料品类</label>
       <select id="cat" ${editing ? 'disabled' : ''}>
-        ${CATS.map(c => `<option value="${c.id}"${editing && c.id === b.catId ? ' selected' : ''}>${c.name}${c.variant ? ' · ' + c.variant : ''}</option>`).join('')}
+        ${CAT_LIST.map(c => `<option value="${c.id}"${c.id === catId ? ' selected' : ''}>${c.name}${c.variant ? ' · ' + c.variant : ''}</option>`).join('')}
       </select>
-      <div class="note" id="preview" style="margin-bottom:12px"></div>
+      ${isOther ? `
+        <label>物料名称 <span style="color:var(--pink)">新物料写个名字，以后好认</span></label>
+        <input id="customName" value="${pick('name')}" placeholder="例如：新型陶瓷管、客户定制丝材">
+      ` : `<div class="note" id="preview" style="margin-bottom:12px"></div>`}
       <label>批次编号</label>
-      <input id="code" value="${editing ? esc(b.code) : ''}" placeholder="例如 A-1052">
+      <input id="code" value="${pick('code')}" placeholder="例如 A-1052">
       <label>物料规格</label>
-      <input id="spec" value="${editing ? esc(b.spec) : ''}" placeholder="例如 φ0.900mm">
+      <input id="spec" value="${pick('spec')}" placeholder="例如 φ0.900mm">
       <label>供应商</label>
-      <input id="supplier" value="${editing ? esc(b.supplier) : ''}" placeholder="例如 S14006">
+      <input id="supplier" value="${pick('supplier')}" placeholder="例如 S14006">
       <label>采购（谁给的）</label>
-      <input id="buyer" list="buyers" value="${editing ? esc(b.buyer) : ''}" placeholder="例如 张敏">
+      <input id="buyer" list="buyers" value="${pick('buyer')}" placeholder="例如 张敏">
       <datalist id="buyers">
         ${buyers.map(n => `<option value="${esc(n)}"></option>`).join('')}
       </datalist>
       <label>送样日期</label>
-      <input id="recvDate" type="date" value="${editing ? (b.recvDate || today()) : today()}">
+      <input id="recvDate" type="date" value="${esc(raw('recvDate')) || today()}">
       <label>送样数量</label>
-      <input id="qty" value="${editing ? esc(b.qty) : ''}" placeholder="例如 0.26Kg">
+      <input id="qty" value="${pick('qty')}" placeholder="例如 0.26Kg">
+
+      ${isOther && !editing ? `
+        <label>这一批要做哪些测试项？<span style="color:var(--pink)">点一下选中</span></label>
+        <div class="chips" id="chips">
+          ${allItems().map(t => `<button type="button"
+              class="chip ${picked.includes(t.id) ? 'on' : ''}${t.custom ? ' new' : ''}"
+              data-pick="${t.id}">${esc(t.name)}</button>`).join('')}
+        </div>
+        <div class="note" id="pickcount" style="margin:8px 0 14px"></div>
+        <div id="addbox">
+          <button type="button" class="btn ghost" style="margin:0" data-act="showadd">＋ 添加其他实验</button>
+        </div>
+        <div id="custombox" hidden style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)">
+          <label>实验名称</label>
+          <input id="cname" placeholder="例如：盐雾试验">
+          <label>场地 <span style="color:var(--muted)">可以先空着，以后在「物料配置」里补</span></label>
+          <input id="csite" placeholder="例如：2号楼3楼">
+          <button type="button" class="btn primary" style="margin:0" data-act="savecustom">添加这个实验</button>
+        </div>
+      ` : ''}
+
       <button class="btn primary" data-act="${editing ? 'save' : 'create'}">${editing ? '保存' : '创建批次'}</button>
     </div>
     <div class="note">${editing
       ? '品类改不了——一改就会换掉测试项清单，已经记录的进度会丢。要换品类请新建一个批次。'
-      : '测试项不用你挑——选了品类，必做项自动带出来。'}</div>
+      : (isOther
+          ? '「其他」不预设测试项，上面自己勾。新加的实验会存进列表，以后每次都能选。'
+          : '测试项不用你挑——选了品类，必做项自动带出来。')}</div>
   `;
 
-  const sel = document.getElementById('cat');
-  const upd = () => {
-    const c = CATS.find(x => x.id === Number(sel.value)) || CATS[0];
-    document.getElementById('preview').innerHTML =
-      `将自动生成 <b>${c.items.length}</b> 个测试项：` + c.items.map(itemName).join('、');
+  const preview = document.getElementById('preview');
+  if(preview){
+    const c = CATS.find(x => x.id === catId) || CATS[0];
+    preview.innerHTML = `将自动生成 <b>${c.items.length}</b> 个测试项：` + c.items.map(itemName).join('、');
+  }
+  if(editing) return;
+
+  const sync = () => {
+    const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+    d.code = g('code'); d.spec = g('spec'); d.supplier = g('supplier');
+    d.buyer = g('buyer'); d.qty = g('qty');
+    d.recvDate = g('recvDate') || d.recvDate;
+    const n = document.getElementById('customName'); if(n) d.name = n.value;
   };
-  sel.addEventListener('change', upd);
-  upd();
+
+  const sel = document.getElementById('cat');
+  if(sel) sel.addEventListener('change', () => { sync(); d.catId = Number(sel.value); render(); });
+
+  ['code','spec','supplier','buyer','qty','recvDate','customName'].forEach(id => {
+    const e = document.getElementById(id);
+    if(e && e.addEventListener) e.addEventListener('input', sync);
+  });
+
+  const chips = document.getElementById('chips');
+  if(chips){
+    const updCount = () => {
+      const el = document.getElementById('pickcount');
+      if(!el) return;
+      el.innerHTML = d.picked.length
+        ? `已选 <b>${d.picked.length}</b> 项`
+        : '还没选。至少勾一项，否则这个批次没有可推进的步骤。';
+    };
+    chips.addEventListener('click', ev => {
+      const btn = ev.target.closest('[data-pick]');
+      if(!btn) return;
+      const id = btn.dataset.pick;
+      const i = d.picked.indexOf(id);
+      if(i < 0){ d.picked.push(id); btn.classList.add('on'); }
+      else { d.picked.splice(i, 1); btn.classList.remove('on'); }
+      updCount();
+    });
+    updCount();
+  }
 }
 
 /* --------------------------------------------------------------- 导入导出 */
@@ -708,6 +811,9 @@ function findCat(name, variant){
   if(n.includes('·')){
     const p = n.split('·'); n = p[0].trim();
     if(!v) v = (p[1] || '').trim();
+  }
+  if(n === '其他'){
+    return {err:'「其他」的测试项要手动勾，CSV 导入不了，请手动新建这一个批次'};
   }
   const exact = CATS.find(c => c.name === n && (c.variant || '') === v);
   if(exact) return {cat:exact};
@@ -850,11 +956,36 @@ function viewConfig(){
           ${ITEMS.map(i => c.items.includes(i.id)
             ? `<td class="c mark">1</td>` : `<td class="c"></td>`).join('')}
         </tr>`).join('')}
+        <tr>
+          <td>其他</td><td>—</td>
+          <td class="c" colspan="${ITEMS.length}" style="color:var(--muted)">
+            不预设，新建批次时手动勾
+          </td>
+        </tr>
       </tbody>
     </table></div>
     <div class="note" style="margin-top:12px">
       这张表就是小程序里的数据字典。以后要加测试项或改某个物料的必做项，在这里改一次，
       新建的批次就按新规则走，已经建好的批次不受影响——这是当初把它设计成“表”而不是“列”的原因。
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div style="font-weight:600;margin-bottom:6px">
+        自定义实验${(S.customItems && S.customItems.length) ? ` · ${S.customItems.length}` : ''}
+      </div>
+      <div class="note" style="margin-bottom:10px">
+        选「其他」品类时现场加的实验，都存在这里，以后每次都能选。
+      </div>
+      ${(S.customItems && S.customItems.length) ? S.customItems.map(t => `
+        <div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)">
+          <div class="grow">
+            <div style="font-weight:600">${esc(t.name)}</div>
+            <div class="sub">场地：${t.sites && t.sites.length ? t.sites.map(esc).join(' / ') : '未填'}</div>
+          </div>
+          <button class="back" style="color:var(--bad);border-color:#ffdadf"
+                  data-act="delcustom" data-id="${t.id}">删除</button>
+        </div>`).join('')
+        : '<div class="note">还没有自定义实验。</div>'}
     </div>
   `;
 }
@@ -958,22 +1089,67 @@ function handleAction(el){
     return render();
   }
   if(act === 'create'){
-    const catId = Number(document.getElementById('cat').value);
+    const d = formDraft();
     const code = document.getElementById('code').value.trim();
     if(!code){ alert('批次编号不能空'); return; }
-    const c = CATS.find(x => x.id === catId) || CATS[0];
+    // 优先读下拉框当前值，草稿只作兜底
+    const selEl = document.getElementById('cat');
+    const selV = selEl ? String(selEl.value) : '';
+    const catId = selV !== '' ? Number(selV) : d.catId;
+    const c = CAT_LIST.find(x => x.id === catId) || CATS[0];
+    let ids;
+    if(c.id === 0){
+      if(!d.name.trim()){ alert('给这个新物料写个名字吧'); return; }
+      if(!d.picked.length){ alert('至少勾一个测试项'); return; }
+      ids = d.picked.slice();
+    } else {
+      ids = c.items.slice();
+    }
     const b = {
-      id: S.seq++, code, catId,
+      id: S.seq++, code, catId: c.id,
+      customName: c.id === 0 ? d.name.trim() : '',
       spec: document.getElementById('spec').value.trim(),
       supplier: document.getElementById('supplier').value.trim(),
       buyer: document.getElementById('buyer').value.trim(),
       recvDate: document.getElementById('recvDate').value || today(),
       qty: document.getElementById('qty').value.trim(),
-      items: c.items.map(iid => ({id:iid, status:'todo', value:'', startDate:null, doneDate:null})),
-      conclusion:'', archiveAt:'', lastUpdate: today()
+      items: ids.map(iid => ({id:iid, status:'todo', value:'', note:'',
+                              startDate:null, doneDate:null})),
+      round:1, history:[], conclusion:'', archiveAt:'', lastUpdate: today()
     };
     S.batches.unshift(b);
+    S.formDraft = null;
     S.cur = b.id; S.view = 'detail';
+    return render();
+  }
+  if(act === 'showadd'){
+    const box = document.getElementById('custombox');
+    const btn = document.getElementById('addbox');
+    if(box) box.hidden = false;
+    if(btn) btn.style.display = 'none';
+    const n = document.getElementById('cname');
+    if(n && n.focus) n.focus();
+    return;
+  }
+  if(act === 'savecustom'){
+    const d = formDraft();
+    const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+    d.code = g('code'); d.spec = g('spec'); d.supplier = g('supplier');
+    d.buyer = g('buyer'); d.qty = g('qty');
+    d.recvDate = g('recvDate') || d.recvDate;
+    const nm = document.getElementById('customName');
+    if(nm) d.name = nm.value;
+    const name = g('cname').trim();
+    const site = g('csite').trim();
+    if(!name){ alert('先写个实验名称'); return; }
+    if(allItems().some(t => t.name === name)){
+      alert(`已经有叫「${name}」的实验了，直接在上面点一下就行`); return;
+    }
+    S.customItems = S.customItems || [];
+    const id = 'C' + (S.customSeq || 1);
+    S.customSeq = (S.customSeq || 1) + 1;
+    S.customItems.push({ id, name, group:'自定义', custom:true, sites: site ? [site] : [] });
+    d.picked.push(id);
     return render();
   }
   if(act === 'delete'){
@@ -1020,6 +1196,19 @@ function handleAction(el){
     it.startDate = null; it.doneDate = null;
     touch(b);
     S.view = 'detail';
+    return render();
+  }
+  if(act === 'delcustom'){
+    const id = el.dataset.id;
+    const t = (S.customItems || []).find(x => x.id === id);
+    if(!t) return;
+    const used = S.batches.concat(S.trash || []).some(b => b.items.some(i => i.id === id));
+    if(used){
+      alert(`「${t.name}」已经被批次用过了，删掉那些批次会显示不出来。\n先别删。`);
+      return;
+    }
+    if(!confirm(`删除自定义实验「${t.name}」？`)) return;
+    S.customItems = S.customItems.filter(x => x.id !== id);
     return render();
   }
   if(act === 'wipe'){

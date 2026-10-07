@@ -1,0 +1,11 @@
+# Cloudflare Workers 部署配置
+# 把仓库连到 Cloudflare 之后，每次 git push 它会自动跑 npx wrangler deploy 重新发布。
+# 这个仓库是纯静态站点（index.html 就在根目录），所以只需要声明 assets，没有构建步骤。
+
+name = "youhuanice"
+compatibility_date = "2026-10-07"
+
+[assets]
+directory = "."
+# 找不到的路径返回 404.html
+not_found_handling = "404-page"

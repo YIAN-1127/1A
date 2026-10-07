@@ -1,0 +1,6 @@
+# 这些文件不用发布到网站上
+.git
+.gitignore
+README.md
+wrangler.toml
+.assetsignore

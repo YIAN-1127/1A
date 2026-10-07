@@ -12,72 +12,113 @@
 <link rel="apple-touch-icon" href="./icon.svg">
 <style>
 :root{
-  --bg:#f4f6f8; --card:#ffffff; --ink:#1b1f24; --muted:#6b7280;
-  --line:#e2e6ea; --brand:#2563a8; --brand-soft:#e8f0f9;
-  --ok:#1f8a56; --ok-soft:#e6f4ec; --warn:#a8681a; --warn-soft:#fdf3e3;
-  --bad:#c0392b; --bad-soft:#fbeae8;
+  /* B站粉蓝 · 浅色马卡龙 */
+  --bg:#f7f8fa;
+  --card:#ffffff;
+  --ink:#18191c;
+  --muted:#8a8f99;
+  --line:#eef0f3;
+
+  --blue:#57aee0;
+  --blue-soft:#e9f5fd;
+  --pink:#f58bae;
+  --pink-soft:#fff0f5;
+
+  --ok:#4cc79a;
+  --ok-soft:#e8f9f2;
+  --warn:#e8b45c;
+  --warn-soft:#fff6e8;
+  --bad:#f2737a;
+  --bad-soft:#ffeef0;
+
+  --brand:var(--blue);
+  --brand-soft:var(--blue-soft);
+  --shadow:0 2px 14px rgba(120,140,170,.08);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
 body{
   font:15px/1.55 "Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;
-  background:var(--bg); color:var(--ink);
+  background:
+    radial-gradient(900px 340px at 6% -12%, #ffe6ef 0%, transparent 62%),
+    radial-gradient(900px 340px at 96% -16%, #e2f3fe 0%, transparent 62%),
+    radial-gradient(600px 240px at 50% -6%, #fff6e6 0%, transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  color:var(--ink);
   -webkit-font-smoothing:antialiased;
 }
 #app{max-width:760px;margin:0 auto;padding:0 14px 60px}
 
 header.top{
-  position:sticky; top:0; z-index:10; background:var(--bg);
+  position:sticky; top:0; z-index:10; background:transparent;
   display:flex; align-items:center; gap:10px; padding:14px 0 10px;
 }
 header.top h1{font-size:17px;margin:0;font-weight:600;flex:1}
 .back{
   border:1px solid var(--line); background:var(--card); color:var(--ink);
-  border-radius:8px; padding:6px 12px; font-size:14px; cursor:pointer;
+  border-radius:10px; padding:6px 12px; font-size:14px; cursor:pointer;
+  box-shadow:var(--shadow);
 }
-.back:hover{background:#eef1f4}
+.back:hover{border-color:#e0e4e9}
 
-.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .tab{
   border:1px solid var(--line); background:var(--card); color:var(--muted);
   border-radius:999px; padding:7px 16px; font-size:14px; cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s;
 }
-.tab.on{background:var(--brand); border-color:var(--brand); color:#fff}
+.tab:hover{color:var(--pink)}
+.tab.on{
+  background:var(--pink); border-color:var(--pink); color:#fff;
+  box-shadow:0 4px 12px rgba(251,114,153,.28);
+}
 
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:14px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 8px;text-align:center}
-.stat b{display:block;font-size:22px;font-weight:600;line-height:1.2}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:11px 8px;text-align:center;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:22px;font-weight:600;line-height:1.2;font-variant-numeric:tabular-nums}
 .stat span{font-size:12px;color:var(--muted)}
+.stat.blue b{color:var(--blue)}
+.stat.pink b{color:var(--pink)}
 .stat.alert b{color:var(--bad)}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
 .row{display:flex;align-items:center;gap:10px}
 .grow{flex:1;min-width:0}
 .code{font-weight:600;font-size:16px}
 .sub{color:var(--muted);font-size:13px;margin-top:2px}
-.next{color:var(--brand);font-size:13px;margin-top:6px}
-.tag{font-size:12px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.next{color:var(--blue);font-size:13px;margin-top:6px}
+.tag{font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap;display:inline-block}
 .tag.bad{background:var(--bad-soft);color:var(--bad)}
 .tag.warn{background:var(--warn-soft);color:var(--warn)}
 .tag.ok{background:var(--ok-soft);color:var(--ok)}
-.tag.n{background:#eef1f4;color:var(--muted)}
-.lnk{color:var(--brand);cursor:pointer}
+.tag.pink{background:var(--pink-soft);color:var(--pink)}
+.tag.blue{background:var(--blue-soft);color:var(--blue)}
+.tag.n{background:#f1f2f4;color:var(--muted)}
+.lnk{color:var(--blue);cursor:pointer}
 .lnk:hover{text-decoration:underline}
 [data-act]{cursor:pointer}
-[data-act]:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
-.rowitem:focus-visible{outline-offset:-2px}
+[data-act]:focus-visible{outline:2px solid var(--pink);outline-offset:2px;border-radius:10px}
 
-.bar{height:6px;background:#eef1f4;border-radius:999px;overflow:hidden;margin-top:8px}
-.bar i{display:block;height:100%;background:var(--brand);border-radius:999px}
+.bar{height:6px;background:#f1f2f4;border-radius:999px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--pink))}
 .bar.done i{background:var(--ok)}
 
 .item{
   display:flex;align-items:center;gap:10px;padding:12px 10px;
-  border-bottom:1px solid var(--line);cursor:pointer;
+  border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;
 }
 .item:last-child{border-bottom:0}
-.item:hover{background:#f8fafc}
-.dot{width:22px;text-align:center;font-size:15px;flex:none}
+.item:hover{background:#fafbfc}
+.dot{
+  width:12px;height:12px;border-radius:50%;flex:none;box-sizing:border-box;
+  border:2px solid #d9dee5;background:#fff;
+}
+.dot.doing{background:var(--blue);border-color:var(--blue)}
+.dot.pending{background:var(--warn);border-color:var(--warn)}
+.dot.done{background:var(--ok);border-color:var(--ok)}
+.dot.fail{background:var(--bad);border-color:var(--bad)}
+.dot.skip{background:#e7e9ec;border-color:#e7e9ec}
 .item.todo .nm{color:var(--ink)}
 .item.done .nm{color:var(--muted);text-decoration:line-through}
 .item.fail .nm{color:var(--bad)}
@@ -85,30 +126,37 @@ header.top h1{font-size:17px;margin:0;font-weight:600;flex:1}
 .item .meta{font-size:12px;color:var(--muted)}
 
 .btn{
-  display:block;width:100%;border:0;border-radius:10px;padding:16px;
+  display:block;width:100%;border:0;border-radius:12px;padding:16px;
   font-size:16px;font-family:inherit;cursor:pointer;margin-bottom:10px;font-weight:500;
+  transition:transform .1s;
 }
-.btn.start{background:var(--brand-soft);color:var(--brand)}
+.btn:active{transform:scale(.985)}
+.btn.start{background:var(--blue-soft);color:var(--blue)}
 .btn.finish{background:var(--ok);color:#fff}
 .btn.warn{background:var(--warn-soft);color:var(--warn)}
 .btn.fail{background:var(--bad-soft);color:var(--bad)}
 .btn.ghost{background:var(--card);border:1px solid var(--line);color:var(--muted)}
-.btn.primary{background:var(--brand);color:#fff}
+.btn.primary{background:var(--pink);color:#fff;box-shadow:0 6px 16px rgba(251,114,153,.28)}
 .btn:disabled{opacity:.4;cursor:default}
 
 input,select,textarea{
-  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
   font:inherit;background:var(--card);color:var(--ink);margin-bottom:10px;
 }
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(251,114,153,.12)}
 label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
 
 .note{font-size:13px;color:var(--muted);line-height:1.6}
 .empty{text-align:center;color:var(--muted);padding:40px 10px}
+.banner{
+  background:var(--bad-soft);border:1px solid #ffd9d9;color:#b03030;
+  border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.6;
+}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
-th{background:#f8fafc;font-weight:600;color:var(--muted);position:sticky;top:52px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{background:#fafbfc;font-weight:600;color:var(--muted);position:sticky;top:52px}
 td.c{text-align:center}
-.mark{background:var(--brand-soft);color:var(--brand);font-weight:600;border-radius:5px}
+.mark{background:var(--blue-soft);color:var(--blue);font-weight:600;border-radius:6px}
 .scroll{overflow-x:auto}
 footer{margin-top:24px;text-align:center}
 footer button{
@@ -171,64 +219,44 @@ function esc(s){
     m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
+// 全新打开就是一张白纸，不带任何示例数据
 function seed(){
-  return {seq:6, view:'board', batches:[
-    // 漏项 + 停滞：尺寸和 IT熔断 做完了，中间的米电阻还空着
-    mkBatch({id:1, code:'A-1023', catId:1, spec:'φ0.900mm', supplier:'S14006',
-             buyer:'张敏', recvDate:'2026-01-16', qty:'0.26Kg',
-             plan:['done','todo','done'], lastUpdate:'2026-09-28'}),
-    // 测试做完了但没下结论
-    mkBatch({id:2, code:'A-1031', catId:10, spec:'Φ1.1mm', supplier:'S13009',
-             buyer:'李伟', recvDate:'2026-07-21', qty:'0.5Kg',
-             plan:['done','pending','todo'], lastUpdate:'2026-10-05'}),
-    // 全部测完，等判定
-    mkBatch({id:3, code:'A-1044', catId:6, spec:'5.75*23.6mm', supplier:'AT31',
-             buyer:'张敏', recvDate:'2026-09-30', qty:'1K EA',
-             plan:['done','done','done','done','done','done','done','done'],
-             lastUpdate:'2026-10-04'})
-    ,
-    // 一批刚开的铜帽，测试项散在好几个地方
-    mkBatch({id:4, code:'A-1052', catId:7, spec:'3.9*0.8*30mm', supplier:'S16021',
-             buyer:'王强', recvDate:'2026-10-02', qty:'（6）箱',
-             plan:['doing','todo','todo','todo','todo','todo','todo'],
-             lastUpdate:'2026-10-05'}),
-    // 陶瓷基板，带 x射线
-    mkBatch({id:5, code:'A-1067', catId:12, spec:'60*70*0.50mm', supplier:'S25002',
-             buyer:'李伟', recvDate:'2026-10-05', qty:'10 片',
-             plan:['done','todo','todo','todo'], lastUpdate:'2026-09-29'})
-  ]};
+  return { seq:1, view:'board', batches:[], trash:[], ioResult:null };
 }
-function mkBatch(o){
-  const c = CATS.find(x => x.id === o.catId);
-  const items = c.items.map((iid, i) => {
-    const st = o.plan[i] || 'todo';
-    return {id:iid, status:st, value:'', note:'',
-            startDate:['doing','done','fail'].includes(st) ? o.recvDate : null,
-            doneDate:(st === 'done' || st === 'fail') ? o.recvDate : null};
-  });
-  return {id:o.id, code:o.code, catId:o.catId, spec:o.spec, supplier:o.supplier,
-          buyer:o.buyer || '', recvDate:o.recvDate, qty:o.qty, items,
-          round:1, history:[], conclusion:'', archiveAt:'', lastUpdate:o.lastUpdate};
+function emptyState(){
+  return { seq:1, view:'board', batches:[], trash:[], ioResult:null };
 }
 
 let S = load();
 
 function load(){
-  try{
-    const raw = localStorage.getItem(KEY);
-    if(raw) return normalize(JSON.parse(raw));
-  }catch(e){}
-  return seed();
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch(e){ return seed(); }
+  if(!raw) return seed();
+  try {
+    return normalize(JSON.parse(raw));
+  } catch(e) {
+    // 数据解析失败时绝不静默清空——把原始内容留着，让用户能导出留底
+    const s = emptyState();
+    s.loadError = true;
+    s.loadErrorRaw = raw;
+    return s;
+  }
 }
 // 老版本存下来的数据没有 round / history / buyer 这些字段，读进来时补齐，别让旧数据把页面搞崩
 function normalize(p){
-  if(!p || typeof p !== 'object' || !Array.isArray(p.batches)) return seed();
+  // 格式不对就抛错，交给 load() 走"救急"分支，绝不静默清空
+  if(!p || typeof p !== 'object' || !Array.isArray(p.batches)) {
+    throw new Error('本地数据的格式不对');
+  }
   p.view = 'board';
   p.ioResult = null;
   p.batches = p.batches.filter(b => b && b.code && Array.isArray(b.items));
+  p.trash = Array.isArray(p.trash) ? p.trash.filter(b => b && b.code && Array.isArray(b.items)) : [];
   const maxId = p.batches.reduce((m, b) => Math.max(m, Number(b.id) || 0), 0);
-  p.seq = Math.max(Number(p.seq) || 0, maxId + 1);
-  p.batches.forEach(b => {
+  const maxTrash = p.trash.reduce((m, b) => Math.max(m, Number(b.id) || 0), 0);
+  p.seq = Math.max(Number(p.seq) || 0, maxId + 1, maxTrash + 1);
+  [...p.batches, ...p.trash].forEach(b => {
     b.round      = Math.max(1, Number(b.round) || 1);
     b.history    = Array.isArray(b.history) ? b.history : [];
     b.buyer      = b.buyer || '';
@@ -319,11 +347,19 @@ function header(title, backTo){
   return `<header class="top">
     ${backTo ? `<button class="back" data-act="go" data-to="${backTo}">← 返回</button>` : ''}
     <h1>${title}</h1>
-  </header>`;
+  </header>${S.loadError ? `
+    <div class="banner">
+      <b>本地数据读不出来。</b>浏览器里存的记录解析失败了，先别把它当成空的——
+      点下面把原始内容下载下来留底，再决定怎么办。
+      <div style="margin-top:10px">
+        <a class="btn ghost" style="text-align:center;text-decoration:none;margin:0"
+           href="${dlHref(S.loadErrorRaw)}" download="材料承认助手_原始数据_救急.txt">下载原始数据</a>
+      </div>
+    </div>` : ''}`;
 }
 function tabs(active){
   const t = [['board','今日看板'],['site','场地视图'],['config','物料配置'],
-             ['new','＋ 新建批次'],['io','导入导出']];
+             ['new','＋ 新建批次'],['io', S.trash && S.trash.length ? '数据 · ' + S.trash.length : '数据']];
   return `<div class="tabs">${t.map(([k,label]) =>
     `<button class="tab ${k===active?'on':''}" data-act="go" data-to="${k}">${label}</button>`).join('')}</div>`;
 }
@@ -344,16 +380,24 @@ function viewBoard(){
     ${header('材料承认助手')}
     ${tabs('board')}
     <div class="stats">
-      <div class="stat"><b>${doing.length}</b><span>进行中</span></div>
-      <div class="stat"><b>${pend.length}</b><span>待判定</span></div>
-      <div class="stat"><b>${ready.length}</b><span>待承认</span></div>
+      <div class="stat blue"><b>${doing.length}</b><span>进行中</span></div>
+      <div class="stat pink"><b>${pend.length}</b><span>待判定</span></div>
+      <div class="stat blue"><b>${ready.length}</b><span>待承认</span></div>
       <div class="stat alert"><b>${exc.length}</b><span>异常</span></div>
-      <div class="stat"><b>${done.length}</b><span>已承认</span></div>
+      <div class="stat pink"><b>${done.length}</b><span>已承认</span></div>
     </div>
-    ${list.length ? list.map(cardHTML).join('') : '<div class="empty">还没有批次<br>点上面的「＋ 新建批次」试一下</div>'}
+    ${list.length ? list.map(cardHTML).join('') : `
+      <div class="card" style="text-align:center;padding:34px 18px">
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px">还没有批次</div>
+        <div class="note" style="margin-bottom:18px">
+          收到样品就登记一条，之后每做完一个测试项点一下，
+          这里就会告诉你哪些批次卡住了、下一步该做什么、该去哪个场地。
+        </div>
+        <button class="btn primary" style="max-width:240px;margin:0 auto"
+                data-act="go" data-to="new">＋ 登记第一批样品</button>
+      </div>`}
     <footer>
-      <div class="note" style="margin-bottom:8px">数据只存在这台设备上，不会上传。建议每周到「导入导出」导出一次备份。</div>
-      <button data-act="reset">重置为示例数据</button>
+      <div class="note">数据只存在这台设备上，不会上传。建议每周到「数据」页导出一次备份。</div>
     </footer>
   `;
 }
@@ -404,7 +448,7 @@ function viewDetail(id){
     <div class="card" style="padding:4px 4px">
       ${b.items.map(it => `
         <div class="item ${it.status}" data-act="open-item" data-id="${b.id}" data-item="${it.id}" role="button" tabindex="0">
-          <span class="dot">${STATUS_DOT[it.status]}</span>
+          <span class="dot ${it.status}"></span>
           <span class="nm">${itemName(it.id)}${nxt && nxt.id===it.id ? '　<b>← 下一步</b>' : ''}</span>
           <span class="meta">${it.status==='pending' ? '待判'
             : SETTLED.includes(it.status) ? (it.doneDate||'')
@@ -450,6 +494,14 @@ function viewDetail(id){
         <span class="tag ${h.conclusion === '承认' ? 'ok' : h.conclusion ? 'bad' : 'n'}">${h.conclusion || '未判定'}</span>
       </div>`).join('')}
     </div>` : ''}
+
+    <div class="card" style="box-shadow:none;border-color:#f4e2e7">
+      <div class="row">
+        <div class="grow note" style="margin:0">删错了可以恢复</div>
+        <button class="back" style="color:var(--bad);border-color:#ffdadf"
+                data-act="delete" data-id="${b.id}">删除这个批次</button>
+      </div>
+    </div>
   `;
 }
 
@@ -480,6 +532,15 @@ function viewRecord(bid, itemId){
       <input id="note" value="${esc(it.note)}" placeholder="">
       <button class="btn ghost" style="margin:0" data-act="saveval">只保存数据，不改状态</button>
     </div>
+
+    ${it.status !== 'todo' ? `
+    <div class="card" style="box-shadow:none;border-color:#f4e2e7">
+      <div class="row">
+        <div class="grow note" style="margin:0">登记错了、或者想重新记一遍</div>
+        <button class="back" style="color:var(--bad);border-color:#ffdadf"
+                data-act="clear-item">清除这一项</button>
+      </div>
+    </div>` : ''}
     <div class="note">
       合格 / 待判定 / 不合格 三个都表示“这项已经做完了”，区别只是结论有没有下。
       做完了但还没看数据，就先点「待判定」。
@@ -707,7 +768,7 @@ function doImport(text){
 function viewIO(){
   const io = S.ioResult;
   app.innerHTML = `
-    ${header('导入导出')}
+    ${header('数据')}
     ${tabs('io')}
     <div class="card">
       <div style="font-weight:600;margin-bottom:6px">一次性导入历史批次</div>
@@ -737,13 +798,34 @@ function viewIO(){
       <a class="btn ghost" style="text-align:center;text-decoration:none" href="${dlHref(exportCSV())}" download="材料承认批次_导出.csv">导出 ${S.batches.length} 个批次</a>
     </div>
     <div class="card">
-      <div style="font-weight:600;margin-bottom:6px">清空</div>
-      <div class="note" style="margin-bottom:12px">
-        示例批次只是给你试手感的。正式开始用之前，点这里清掉，从零开始登记。
-        <b>清空前先导出一次备份。</b>
+      <div style="font-weight:600;margin-bottom:6px">
+        回收站${(S.trash && S.trash.length) ? ` · ${S.trash.length}` : ''}
       </div>
-      <button class="btn fail" data-act="wipe">清空全部批次</button>
-      <button class="btn ghost" data-act="reset">恢复示例批次</button>
+      <div class="note" style="margin-bottom:12px">
+        删掉的批次先放这儿，不会立刻消失。确认不要了再永久删除。
+      </div>
+      ${(S.trash && S.trash.length) ? `
+        ${S.trash.map(t => `<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)">
+          <div class="grow">
+            <div style="font-weight:600">${esc(t.code)}</div>
+            <div class="sub">${catName(t)} ｜ 删除于 ${esc(t.deletedAt) || '—'}</div>
+          </div>
+          <button class="back" data-act="restore" data-id="${t.id}">恢复</button>
+          <button class="back" style="color:var(--bad);border-color:#ffdadf"
+                  data-act="purge" data-id="${t.id}">彻底删除</button>
+        </div>`).join('')}
+        <button class="btn fail" style="margin-top:12px"
+                data-act="empty-trash">清空回收站（永久删除 ${S.trash.length} 个）</button>
+      ` : '<div class="note">回收站是空的。</div>'}
+    </div>
+
+    <div class="card" style="box-shadow:none;border-color:#f4e2e7">
+      <div style="font-weight:600;margin-bottom:6px">清空全部批次</div>
+      <div class="note" style="margin-bottom:12px">
+        把当前所有批次移到回收站。想彻底清干净，再点上面的「清空回收站」。
+        <b>动手前先导出一次备份。</b>
+      </div>
+      <button class="btn fail" data-act="wipe">全部移到回收站</button>
     </div>
   `;
   const fi = document.getElementById('file');
@@ -894,16 +976,60 @@ function handleAction(el){
     S.cur = b.id; S.view = 'detail';
     return render();
   }
-  if(act === 'reset'){
-    if(confirm('清掉所有改动，恢复成示例批次？')){
-      S = seed(); return render();
-    }
+  if(act === 'delete'){
+    const b = S.batches.find(x => x.id === S.cur);
+    if(!b) return;
+    if(!confirm(`把批次「${b.code}」移到回收站？\n之后可以在「数据」页恢复。`)) return;
+    S.trash = S.trash || [];
+    b.deletedAt = today();
+    S.trash.unshift(b);
+    S.batches = S.batches.filter(x => x.id !== b.id);
+    S.view = 'board'; S.cur = null;
+    return render();
+  }
+  if(act === 'restore'){
+    const id = Number(el.dataset.id);
+    const i = (S.trash || []).findIndex(x => x.id === id);
+    if(i < 0) return;
+    const b = S.trash.splice(i, 1)[0];
+    delete b.deletedAt;
+    S.batches.unshift(b);
+    return render();
+  }
+  if(act === 'purge'){
+    const id = Number(el.dataset.id);
+    const b = (S.trash || []).find(x => x.id === id);
+    if(!b) return;
+    if(!confirm(`彻底删除「${b.code}」？这一步不可恢复。`)) return;
+    S.trash = S.trash.filter(x => x.id !== id);
+    return render();
+  }
+  if(act === 'empty-trash'){
+    const n = (S.trash || []).length;
+    if(!n) return;
+    if(!confirm(`回收站里 ${n} 个批次将被永久删除，不可恢复。\n确定吗？`)) return;
+    S.trash = [];
+    return render();
+  }
+  if(act === 'clear-item'){
+    const b = S.batches.find(x => x.id === S.cur);
+    const it = b && b.items.find(i => i.id === S.curItem);
+    if(!it) return;
+    if(!confirm(`把「${itemName(S.curItem)}」的记录清掉，回到未开始？`)) return;
+    it.status = 'todo'; it.value = ''; it.note = '';
+    it.startDate = null; it.doneDate = null;
+    touch(b);
+    S.view = 'detail';
+    return render();
   }
   if(act === 'wipe'){
-    if(confirm('清空所有批次，从零开始？（建议先导出备份）')){
-      S = { seq:1, view:'io', batches:[], ioResult:null };
-      return render();
-    }
+    const n = S.batches.length;
+    if(!n){ alert('当前没有批次'); return; }
+    if(!confirm(`把 ${n} 个批次全部移到回收站？\n可以在「数据」页恢复。`)) return;
+    S.trash = S.trash || [];
+    S.batches.forEach(b => { b.deletedAt = today(); S.trash.unshift(b); });
+    S.batches = [];
+    return render();
   }
 }
 

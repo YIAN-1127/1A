@@ -2,7 +2,7 @@
    策略：网络优先，失败时用缓存。这样联网时能拿到最新版，断网时还能继续用。
    改了 index.html 之后，把 VERSION 加一，旧缓存会在下次打开时清掉。 */
 
-const VERSION = '1';
+const VERSION = '2';
 const CACHE = 'mat-recog-' + VERSION;
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
 
